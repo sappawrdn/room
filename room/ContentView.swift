@@ -83,11 +83,27 @@ struct ContentView: View {
                     }
                     floorMat.metallic = 0
                     floorMat.roughness = 1
-                    let floor = ModelEntity(
-                        mesh: .generatePlane(width: roomSize, depth: roomSize),
-                        materials: [floorMat]
-                    )
-                    root.addChild(floor)
+                    // Lantai dipecah jadi grid ubin biar tekstur ngulang, ga ke-stretch
+                    let tileSize: Float = 2.5  // <-- gedein kalau mau ubin lebih gede, kecilin kalau mau rapet
+                    let tileCount = Int((roomSize / tileSize).rounded())
+                    let startPos = -roomSize / 2 + tileSize / 2
+                    for ix in 0..<tileCount {
+                        for iz in 0..<tileCount {
+                            let tile = ModelEntity(
+                                mesh: .generatePlane(
+                                    width: tileSize,
+                                    depth: tileSize
+                                ),
+                                materials: [floorMat]
+                            )
+                            tile.position = [
+                                startPos + Float(ix) * tileSize,
+                                0,
+                                startPos + Float(iz) * tileSize,
+                            ]
+                            root.addChild(tile)
+                        }
+                    }
 
                     let ceiling = ModelEntity(
                         mesh: .generatePlane(width: roomSize, depth: roomSize),
@@ -182,6 +198,23 @@ struct ContentView: View {
                             basePitch = pitch
                         }
                 )
+
+                if isPlaying {
+                    VHSOverlay()
+                        .frame(width: frameWidth, height: frameHeight)
+                        .clipped()
+
+                    RadialGradient(
+                        colors: [.clear, .black.opacity(0.55)],
+                        center: .center,
+                        startRadius: 80,
+                        endRadius: 480
+                    )
+                    .frame(width: frameWidth, height: frameHeight)
+                    .clipped()
+                    .allowsHitTesting(false)
+                    .blendMode(.multiply)
+                }
 
                 if isPlaying {
                     VStack {
@@ -655,7 +688,7 @@ struct JoystickView: View {
     @Binding var value: SIMD2<Float>
     @State private var knob: CGSize = .zero
     let radius: CGFloat = 55
-    
+
     var body: some View {
         ZStack {
             Circle().fill(.white.opacity(0.15))
@@ -686,5 +719,49 @@ struct JoystickView: View {
                     value = .zero
                 }
         )
+    }
+}
+
+struct VHSOverlay: View {
+    var grainCount: Int = 220  // turunin kalau nge-lag, naikin kalau mau lebih kotor
+    
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            Canvas { context, size in
+                guard size.width > 1, size.height > 1 else { return }
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                
+                // Scanlines
+                context.opacity = 0.10
+                var y: CGFloat = 0
+                while y < size.height {
+                    context.fill(
+                        Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
+                        with: .color(.black)
+                    )
+                    y += 3
+                }
+                
+                // Grain (titik random tiap frame)
+                context.opacity = 0.09
+                for _ in 0..<grainCount {
+                    let gx = CGFloat.random(in: 0..<size.width)
+                    let gy = CGFloat.random(in: 0..<size.height)
+                    context.fill(
+                        Path(CGRect(x: gx, y: gy, width: 1.5, height: 1.5)),
+                        with: .color(.white)
+                    )
+                }
+                
+                // VHS tracking bar (pita gerak naik turun pelan)
+                context.opacity = 0.05
+                let barY = CGFloat(sin(t * 0.7) * 0.5 + 0.5) * size.height
+                context.fill(
+                    Path(CGRect(x: 0, y: barY, width: size.width, height: 36)),
+                    with: .color(.white)
+                )
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
