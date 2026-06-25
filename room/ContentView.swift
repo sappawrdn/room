@@ -61,16 +61,31 @@ struct ContentView: View {
                 RealityView { content in
                     let root = Entity()
                     let half = roomSize / 2
-                    let wallMat = SimpleMaterial(
-                        color: .init(white: 0.7, alpha: 1.0),
-                        isMetallic: false
-                    )
+                    var wallMat = SimpleMaterial()
+                    if let tex = try? TextureResource.load(named: "wall") {
+                        wallMat.color = .init(tint: .white, texture: .init(tex))
+                    } else {
+                        wallMat.color = .init(
+                            tint: .init(white: 0.7, alpha: 1.0)
+                        )
+                    }
+                    wallMat.metallic = 0
+                    wallMat.roughness = 1
 
+                    var floorMat = SimpleMaterial()
+                    if let tex = try? TextureResource.load(named: "floor") {
+                        floorMat.color = .init(
+                            tint: .white,
+                            texture: .init(tex)
+                        )
+                    } else {
+                        floorMat.color = .init(tint: .gray)
+                    }
+                    floorMat.metallic = 0
+                    floorMat.roughness = 1
                     let floor = ModelEntity(
                         mesh: .generatePlane(width: roomSize, depth: roomSize),
-                        materials: [
-                            SimpleMaterial(color: .gray, isMetallic: false)
-                        ]
+                        materials: [floorMat]
                     )
                     root.addChild(floor)
 
@@ -131,14 +146,21 @@ struct ContentView: View {
                     camera.position = [0, 1.6, 0]
                     root.addChild(camera)
 
-                    monster.model = ModelComponent(
-                        mesh: .generateBox(size: 0.6),
-                        materials: [
-                            SimpleMaterial(color: .red, isMetallic: false)
-                        ]
-                    )
-                    monster.position = [3, 0.8, 3]
+                    monster.position = [3, 0, 3]
                     root.addChild(monster)
+
+                    if let bagman = try? Entity.load(named: "PSX_BagMan") {
+                        bagman.scale = [1, 1, 1]
+                        bagman.position = [0, 0, 0]
+                        monster.addChild(bagman)
+                    } else {
+                        monster.model = ModelComponent(
+                            mesh: .generateBox(size: 0.6),
+                            materials: [
+                                SimpleMaterial(color: .red, isMetallic: false)
+                            ]
+                        )
+                    }
 
                     content.add(root)
                 }
