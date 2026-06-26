@@ -33,10 +33,10 @@ extension ContentView {
         camera.position = pos
 
         // ----- Monster AI: berburu lewat suara -----
-        let playerPos = SIMD3<Float>(camera.position.x, 0.8, camera.position.z)
+        let playerPos = SIMD3<Float>(camera.position.x, 0, camera.position.z)
 
         if moving {
-            let trackRate: Float = 2.0
+            let trackRate: Float = 0.5
             monsterKnownPos +=
                 (playerPos - monsterKnownPos) * min(trackRate * dt, 1)
             stillTime = 0
@@ -54,12 +54,12 @@ extension ContentView {
             monsterKnownPos.z - monster.position.z
         )
         let knownDist = length(toKnown)
-        let monsterSpeed: Float = moving ? (1.0 + 1.2 * insanity) : 0.9
-
+        let monsterSpeed: Float = moving ? (0.5 + 0.5 * insanity) : 0.4
+        
         if knownDist > 0.4 {
             let dir = toKnown / knownDist
             var mp = monster.position + dir * monsterSpeed * dt
-            mp.y = 0.8
+            mp.y = 0
             monster.position = mp
         } else {
             let toSearch = SIMD3<Float>(
@@ -78,11 +78,11 @@ extension ContentView {
                     max(monsterKnownPos.z + Float.random(in: -2.5...2.5), -lim),
                     lim
                 )
-                monsterTarget = [sx, 0.8, sz]
+                monsterTarget = [sx, 0, sz]
             } else {
                 let dir = toSearch / searchDist
                 var mp = monster.position + dir * 0.9 * dt
-                mp.y = 0.8
+                mp.y = 0
                 monster.position = mp
             }
         }
