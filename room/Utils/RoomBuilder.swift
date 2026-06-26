@@ -11,6 +11,7 @@ import SwiftUI
 
 enum RoomBuilder {
     static func build(root: Entity, roomSize: Float, wallThickness: Float, camera: PerspectiveCamera, monster: ModelEntity) {
+        let roomHeight: Float = 4.5
         let half = roomSize / 2
         var wallMat = SimpleMaterial()
         if let tex = try? TextureResource.load(named: "wall") {
@@ -20,7 +21,7 @@ enum RoomBuilder {
         }
         wallMat.metallic = 0
         wallMat.roughness = 1
-
+        
         var floorMat = SimpleMaterial()
         if let tex = try? TextureResource.load(named: "floor") {
             floorMat.color = .init(tint: .white, texture: .init(tex))
@@ -30,7 +31,7 @@ enum RoomBuilder {
         floorMat.metallic = 0
         floorMat.roughness = 1
         
-        let tileSize: Float = 2.5 
+        let tileSize: Float = 2.5
         let tileCount = Int((roomSize / tileSize).rounded())
         let startPos = -roomSize / 2 + tileSize / 2
         for ix in 0..<tileCount {
@@ -47,39 +48,50 @@ enum RoomBuilder {
                 root.addChild(tile)
             }
         }
-
-        let ceiling = ModelEntity(
-            mesh: .generatePlane(width: roomSize, depth: roomSize),
-            materials: [SimpleMaterial(color: .init(white: 0.5, alpha: 1.0), isMetallic: false)]
+        
+        var ceilingMat = SimpleMaterial(
+            color: .init(red: 0.85, green: 0.82, blue: 0.73, alpha: 1.0),
+            isMetallic: false
         )
-        ceiling.position = [0, 3, 0]
+        ceilingMat.roughness = 1.0
+        ceilingMat.metallic = 0.0
+        
+        let ceiling = ModelEntity(
+            mesh: .generatePlane(width: roomSize + 1.0, depth: roomSize + 1.0),
+            materials: [ceilingMat]
+        )
+        ceiling.position = [0, roomHeight, 0]
         ceiling.orientation = simd_quatf(angle: .pi, axis: [1, 0, 0])
         root.addChild(ceiling)
-
+        
         func makeWall(w: Float, d: Float, pos: SIMD3<Float>) {
             let wall = ModelEntity(
-                mesh: .generateBox(width: w, height: 3, depth: d),
+                mesh: .generateBox(width: w, height: roomHeight, depth: d),
                 materials: [wallMat]
             )
             wall.position = pos
             root.addChild(wall)
         }
-        makeWall(w: roomSize, d: wallThickness, pos: [0, 1.5, -half])
-        makeWall(w: roomSize, d: wallThickness, pos: [0, 1.5, half])
-        makeWall(w: wallThickness, d: roomSize, pos: [-half, 1.5, 0])
-        makeWall(w: wallThickness, d: roomSize, pos: [half, 1.5, 0])
-
-        let light = DirectionalLight()
-        light.light.intensity = 2000
-        light.look(at: [0, 0, 0], from: [2, 4, 2], relativeTo: nil)
-        root.addChild(light)
-
+        makeWall(w: roomSize, d: wallThickness, pos: [0, roomHeight / 2, -half])
+        makeWall(w: roomSize, d: wallThickness, pos: [0, roomHeight / 2, half])
+        makeWall(w: wallThickness, d: roomSize, pos: [-half, roomHeight / 2, 0])
+        makeWall(w: wallThickness, d: roomSize, pos: [half, roomHeight / 2, 0])
+        
+        let flashlight = SpotLight()
+        flashlight.light.color = .white
+        flashlight.light.intensity = 80000 // SpotLight butuh intensitas tinggi di RealityKit
+        flashlight.light.innerAngleInDegrees = 40
+        flashlight.light.outerAngleInDegrees = 60
+        flashlight.light.attenuationRadius = 15 // Jarak maksimal cahaya
+        
+        camera.addChild(flashlight)
+        
         camera.position = [0, 1.6, 0]
         root.addChild(camera)
-
+        
         monster.position = [3, 0, 3]
         root.addChild(monster)
-
+        
         if let bagman = try? Entity.load(named: "PSX_BagMan") {
             bagman.scale = [1, 1, 1]
             bagman.position = [0, 0, 0]
