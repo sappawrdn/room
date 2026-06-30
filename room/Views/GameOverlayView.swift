@@ -16,7 +16,6 @@ struct GameOverlayView: View {
 
     var body: some View {
         ZStack {
-            // VHS Effect
             VHSOverlay()
                 .frame(width: frameWidth, height: frameHeight)
                 .clipped()
