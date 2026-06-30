@@ -18,7 +18,7 @@ enum RoomBuilder {
     ) {
         let roomHeight: Float = 4.5
         let half = roomSize / 2
-
+        
         // ===== Dinding =====
         var wallMat = SimpleMaterial()
         if let tex = try? TextureResource.load(named: "Wall1") {
@@ -28,7 +28,7 @@ enum RoomBuilder {
         }
         wallMat.metallic = 0
         wallMat.roughness = 1
-
+        
         // ===== Lantai =====
         var floorMat = SimpleMaterial()
         if let tex = try? TextureResource.load(named: "Floor") {
@@ -38,7 +38,7 @@ enum RoomBuilder {
         }
         floorMat.metallic = 0
         floorMat.roughness = 1
-
+        
         let tileSize: Float = 2.5
         let tileCount = Int((roomSize / tileSize).rounded())
         let startPos = -roomSize / 2 + tileSize / 2
@@ -56,7 +56,7 @@ enum RoomBuilder {
                 root.addChild(tile)
             }
         }
-
+        
         // ===== Ceiling: di-tile biar grid panel kecil & rapi (kayak referensi) =====
         var ceilingMat = PhysicallyBasedMaterial()
         if let baseTex = try? TextureResource.load(named: "Ceiling") {
@@ -76,7 +76,7 @@ enum RoomBuilder {
         }
         ceilingMat.metallic = .init(floatLiteral: 0)
         ceilingMat.roughness = .init(floatLiteral: 1)
-
+        
         // 1 kotak = 1 gambar grid 6x6. Kecilin ceilTileSize biar tile makin kecil & rapet
         let ceilTileSize: Float = 5.0
         let ceilCount = Int((roomSize / ceilTileSize).rounded())
@@ -99,29 +99,42 @@ enum RoomBuilder {
                 root.addChild(panel)
             }
         }
-
-        // ===== Tembok =====
-        func makeWall(w: Float, d: Float, pos: SIMD3<Float>) {
-            let wall = ModelEntity(
-                mesh: .generateBox(width: w, height: roomHeight, depth: d),
-                materials: [wallMat]
-            )
-            wall.position = pos
-            root.addChild(wall)
+        
+        // ===== Tembok (Di-tile / Looping biar tidak stretch) =====
+        let wallTileSize: Float = 4.5
+        let wallTileCount = Int(ceil(roomSize / wallTileSize))
+        let totalWallLength = Float(wallTileCount) * wallTileSize
+        let wallStart = -totalWallLength / 2 + wallTileSize / 2
+        
+        func makeWallX(zPos: Float) {
+            for i in 0..<wallTileCount {
+                let xPos = wallStart + Float(i) * wallTileSize
+                let wall = ModelEntity(
+                    mesh: .generateBox(width: wallTileSize, height: roomHeight, depth: wallThickness),
+                    materials: [wallMat]
+                )
+                wall.position = [xPos, roomHeight / 2, zPos]
+                root.addChild(wall)
+            }
         }
-        makeWall(
-            w: roomSize,
-            d: wallThickness,
-            pos: [0, roomHeight / 2, -half]
-        )
-        makeWall(w: roomSize, d: wallThickness, pos: [0, roomHeight / 2, half])
-        makeWall(
-            w: wallThickness,
-            d: roomSize,
-            pos: [-half, roomHeight / 2, 0]
-        )
-        makeWall(w: wallThickness, d: roomSize, pos: [half, roomHeight / 2, 0])
-
+        
+        func makeWallZ(xPos: Float) {
+            for i in 0..<wallTileCount {
+                let zPos = wallStart + Float(i) * wallTileSize
+                let wall = ModelEntity(
+                    mesh: .generateBox(width: wallThickness, height: roomHeight, depth: wallTileSize),
+                    materials: [wallMat]
+                )
+                wall.position = [xPos, roomHeight / 2, zPos]
+                root.addChild(wall)
+            }
+        }
+        
+        makeWallX(zPos: -half)
+        makeWallX(zPos: half)
+        makeWallZ(xPos: -half)
+        makeWallZ(xPos: half)
+        
         // ===== Senter =====
         let flashlight = SpotLight()
         flashlight.light.color = .white
@@ -130,14 +143,14 @@ enum RoomBuilder {
         flashlight.light.outerAngleInDegrees = 60
         flashlight.light.attenuationRadius = 15
         camera.addChild(flashlight)
-
+        
         camera.position = [0, 1.6, 0]
         root.addChild(camera)
-
+        
         // ===== Monster =====
         monster.position = [3, 0, 3]
         root.addChild(monster)
-
+        
         if let bagman = try? Entity.load(named: "PSX_BagMan") {
             bagman.scale = [1, 1, 1]
             bagman.position = [0, 0, 0]
