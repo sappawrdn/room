@@ -57,6 +57,15 @@ struct ContentView: View {
     let roomSize: Float = 20
     let wallThickness: Float = 0.2
     let playerRadius: Float = 0.3
+    
+    // Penalty ladder: makin banyak catch, kontrol makin berat
+        var controlFactor: Float {
+            switch catches {
+            case 0: return 1.0
+            case 1: return 0.6
+            default: return 0.45
+            }
+        }
 
     var body: some View {
         GeometryReader { geo in
@@ -90,10 +99,10 @@ struct ContentView: View {
                 .gesture(
                     DragGesture()
                         .onChanged { value in
-                            guard isPlaying else { return }
-                            yaw = baseYaw + Float(-value.translation.width) * 0.005
-                            pitch = basePitch + Float(-value.translation.height) * 0.005
-                        }
+                                                    guard isPlaying else { return }
+                                                    yaw = baseYaw + Float(-value.translation.width) * 0.005 * controlFactor
+                                                    pitch = basePitch + Float(-value.translation.height) * 0.005 * controlFactor
+                                                }
                         .onEnded { _ in
                             baseYaw = yaw
                             basePitch = pitch
@@ -108,6 +117,19 @@ struct ContentView: View {
                         moveInput: $moveInput
                     )
                 }
+                
+                // Penalty catch ke-2: penglihatan nyempit (tunnel vision)
+                                if isPlaying, catches >= 2 {
+                                    RadialGradient(
+                                        colors: [.clear, .clear, .black],
+                                        center: .center,
+                                        startRadius: 30,
+                                        endRadius: 300
+                                    )
+                                    .frame(width: frameWidth, height: frameHeight)
+                                    .clipped()
+                                    .allowsHitTesting(false)
+                                }
 
                 if !isPlaying && !isLoading {
                     StartMenuView {
@@ -241,13 +263,14 @@ struct ContentView: View {
                     .transition(.opacity)
                 }
 
-                // Game over (paling atas)
                 if isGameOver {
-                    GameOverView {
-                        isGameOver = false
-                        isPlaying = false
-                    }
-                }
+                                    GameOverView {
+                                        isGameOver = false
+                                        isPlaying = false
+                                        catches = 0
+                                        insanity = 0
+                                    }
+                                }
             }
         }
         .ignoresSafeArea()

@@ -25,7 +25,7 @@ extension ContentView {
             let yawRot = simd_quatf(angle: yaw, axis: [0, 1, 0])
             let forward = yawRot.act(SIMD3<Float>(0, 0, -1))
             let right = yawRot.act(SIMD3<Float>(1, 0, 0))
-            let speed: Float = 2.5
+            let speed: Float = 2.5 * controlFactor
 
             var pos = camera.position
             pos += (forward * moveInput.y + right * moveInput.x) * speed * dt
