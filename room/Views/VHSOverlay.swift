@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct VHSOverlay: View {
-    var grainCount: Int = 220  // turunin kalau nge-lag, naikin kalau mau lebih kotor
+    var grainCount: Int = 220
     
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -28,7 +28,6 @@ struct VHSOverlay: View {
                     y += 3
                 }
                 
-                // Grain (titik random tiap frame)
                 context.opacity = 0.09
                 for _ in 0..<grainCount {
                     let gx = CGFloat.random(in: 0..<size.width)
@@ -39,7 +38,6 @@ struct VHSOverlay: View {
                     )
                 }
                 
-                // VHS tracking bar (pita gerak naik turun pelan)
                 context.opacity = 0.05
                 let barY = CGFloat(sin(t * 0.7) * 0.5 + 0.5) * size.height
                 context.fill(
