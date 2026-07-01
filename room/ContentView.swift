@@ -25,24 +25,24 @@ struct ContentView: View {
     @State var camera = PerspectiveCamera()
     @State var moveInput: SIMD2<Float> = .zero
     @State var monster = ModelEntity()
-
+    
     @State var monsterTarget: SIMD3<Float> = [3, 0.8, 3]
     @State var monsterKnownPos: SIMD3<Float> = [3, 0.8, 3]
     @State var stillTime: Float = 0
-
+    
     @State var isPlaying = false
     @State var isLoading = false
-
+    
     @State var haptics = HapticManager()
     @State var audio = PHASEManager()
     @State var entityBrain = EntityBrain()
     @State var keyManager = KeyManager()
     @State var insanity: Float = 0
     @State var heartTimer: Float = 0
-
+    
     @State var keyCount: Int = 1
     @State var nearbyKey: Int? = nil
-
+    
     // QTE + catch
     @State var showQTE = false
     @State var qteReason: QTEReason? = nil
@@ -50,38 +50,38 @@ struct ContentView: View {
     @State var catches: Int = 0
     @State var isGameOver = false
     
-    @State var insanityLatched = false 
-
+    @State var insanityLatched = false
+    
     let ticker = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
-
+    
     let roomSize: Float = 20
     let wallThickness: Float = 0.2
     let playerRadius: Float = 0.3
     
     // Penalty ladder: makin banyak catch, kontrol makin berat
-        var controlFactor: Float {
-            switch catches {
-            case 0: return 1.0
-            case 1: return 0.6
-            default: return 0.45
-            }
+    var controlFactor: Float {
+        switch catches {
+        case 0: return 1.0
+        case 1: return 0.6
+        default: return 0.45
         }
-
+    }
+    
     var body: some View {
         GeometryReader { geo in
             let targetRatio: CGFloat = 4.0 / 3.0
             let screenRatio = geo.size.width / geo.size.height
             let ratio43Width = screenRatio > targetRatio ? geo.size.height * targetRatio : geo.size.width
             let ratio43Height = screenRatio > targetRatio ? geo.size.height : geo.size.width / targetRatio
-
+            
             let frameWidth = isPlaying ? ratio43Width : geo.size.width
             let frameHeight = isPlaying ? ratio43Height : geo.size.height
-
+            
             ZStack {
                 Color.black
                 Color(white: 0.13)
                     .frame(width: frameWidth, height: frameHeight)
-
+                
                 RealityView { content in
                     let root = Entity()
                     RoomBuilder.build(
@@ -93,22 +93,28 @@ struct ContentView: View {
                     )
                     keyManager.build(root: root, roomSize: roomSize)
                     content.add(root)
+                    
+                    if let darkEnv = try? await EnvironmentResource(
+                        equirectangular: CGImage.blackSkybox()
+                    ) {
+                        content.environment = .skybox(darkEnv)
+                    }
                 }
                 .frame(width: frameWidth, height: frameHeight)
                 .clipped()
                 .gesture(
                     DragGesture()
                         .onChanged { value in
-                                                    guard isPlaying else { return }
-                                                    yaw = baseYaw + Float(-value.translation.width) * 0.005 * controlFactor
-                                                    pitch = basePitch + Float(-value.translation.height) * 0.005 * controlFactor
-                                                }
+                            guard isPlaying else { return }
+                            yaw = baseYaw + Float(-value.translation.width) * 0.005 * controlFactor
+                            pitch = basePitch + Float(-value.translation.height) * 0.005 * controlFactor
+                        }
                         .onEnded { _ in
                             baseYaw = yaw
                             basePitch = pitch
                         }
                 )
-
+                
                 if isPlaying, !showQTE {
                     GameOverlayView(
                         frameWidth: frameWidth,
@@ -119,18 +125,18 @@ struct ContentView: View {
                 }
                 
                 // Penalty catch ke-2: penglihatan nyempit (tunnel vision)
-                                if isPlaying, catches >= 2 {
-                                    RadialGradient(
-                                        colors: [.clear, .clear, .black],
-                                        center: .center,
-                                        startRadius: 30,
-                                        endRadius: 300
-                                    )
-                                    .frame(width: frameWidth, height: frameHeight)
-                                    .clipped()
-                                    .allowsHitTesting(false)
-                                }
-
+                if isPlaying, catches >= 2 {
+                    RadialGradient(
+                        colors: [.clear, .clear, .black],
+                        center: .center,
+                        startRadius: 30,
+                        endRadius: 300
+                    )
+                    .frame(width: frameWidth, height: frameHeight)
+                    .clipped()
+                    .allowsHitTesting(false)
+                }
+                
                 if !isPlaying && !isLoading {
                     StartMenuView {
                         isLoading = true
@@ -141,7 +147,7 @@ struct ContentView: View {
                         }
                     }
                 }
-
+                
                 // Key pips + catch marks
                 if isPlaying {
                     VStack(spacing: 10) {
@@ -163,7 +169,7 @@ struct ContentView: View {
                     }
                     .padding(.top, 36)
                 }
-
+                
                 // Tombol AMBIL KUNCI
                 if isPlaying, nearbyKey != nil, !showQTE {
                     VStack {
@@ -192,7 +198,7 @@ struct ContentView: View {
                         }
                     }
                 }
-
+                
                 // Tombol debug SEMENTARA
                 if isPlaying, !showQTE {
                     VStack {
@@ -231,7 +237,7 @@ struct ContentView: View {
                         Spacer()
                     }
                 }
-
+                
                 // QTE overlay
                 if showQTE {
                     QTEView { passed in
@@ -251,7 +257,7 @@ struct ContentView: View {
                         }
                     }
                 }
-
+                
                 // Loading
                 if isLoading {
                     LoadingView(duration: 2.0) {
@@ -262,15 +268,15 @@ struct ContentView: View {
                     }
                     .transition(.opacity)
                 }
-
+                
                 if isGameOver {
-                                    GameOverView {
-                                        isGameOver = false
-                                        isPlaying = false
-                                        catches = 0
-                                        insanity = 0
-                                    }
-                                }
+                    GameOverView {
+                        isGameOver = false
+                        isPlaying = false
+                        catches = 0
+                        insanity = 0
+                    }
+                }
             }
         }
         .ignoresSafeArea()
